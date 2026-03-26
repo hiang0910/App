@@ -402,10 +402,8 @@ export const styles = StyleSheet.create({
     position: 'relative',
     marginBottom: 10,
   },
-  recentImage: {
-    width: '100%',
-    height: '100%',
-  },
+ 
+  
   recentImageArrowLeft: {
     position: 'absolute',
     left: 4,
@@ -426,25 +424,10 @@ export const styles = StyleSheet.create({
     color: '#A0A4AB',
     fontSize: 11,
   },
-  homeTrackRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1A1E29',
-  },
-  homeTrackIndex: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    width: 32,
-  },
-  homeTrackImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 6,
-    marginRight: 14,
-  },
+  
+ 
+  
+  
   homeTrackInfo: {
     flex: 1,
   },
@@ -454,10 +437,8 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 4,
   },
-  homeTrackArtist: {
-    color: '#A0A4AB',
-    fontSize: 11,
-  },
+  
+  
   homeTrackTime: {
     color: '#A0A4AB',
     fontSize: 12,
@@ -601,5 +582,94 @@ export const styles = StyleSheet.create({
   switchAuthText: {
     color: '#E0E0E0',
     fontSize: 13,
+  },
+  
+  sectionHeaderLine: {
+    paddingHorizontal: 16,
+    marginBottom: 15,
+  },
+  
+  activeUnderline: {
+    height: 3,
+    width: 35,
+    backgroundColor: '#0CD2D1',
+    marginTop: 4,
+    borderRadius: 2,
+  },
+  horizontalScrollPadding: {
+    paddingHorizontal: 16,
+    paddingRight: 30, // Thêm khoảng trống cuối để cuộn thoải mái
+  },
+ 
+  recentImageWrapper: {
+    position: 'relative',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  recentImage: {
+    width: 140,
+    height: 140,
+    borderRadius: 15,
+    backgroundColor: '#1A2130',
+  },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: '#FFFFFF',
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recentTitle: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: 10,
+  },
+  recentArtist: {
+    color: '#8E97A6',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  topTracksWrapper: {
+    paddingHorizontal: 16,
+    marginTop: 10,
+  },
+  homeTrackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)', // Nền hơi sáng nhẹ
+    padding: 10,
+    borderRadius: 12,
+  },
+  homeTrackIndex: {
+    color: '#0CD2D1',
+    fontSize: 14,
+    fontWeight: 'bold',
+    width: 30,
+  },
+  homeTrackImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    marginRight: 15,
+  },
+  
+  
+  
+  homeTrackArtist: {
+    color: '#8E97A6',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  trackMenuBtn: {
+    padding: 5,
   },
 });

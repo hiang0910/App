@@ -13,135 +13,21 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { PLAYLIST } from '../constants';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { PLAYLIST, ALBUMS, GENRES } from '../constants';
 import { styles } from '../styles';
+import { AppFooter } from '../components/AppFooter';
+import { TopNavBar } from '../components/TopNavBar';
 
-// CHÚ Ý: Kiểm tra đường dẫn này cho đúng với cấu trúc thư mục của Anh
-import { auth, db } from '../../firebaseConfig'; 
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  onAuthStateChanged, 
-  signOut 
-} from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-
-const HomeScreen = ({ audio, activeTab, setActiveTab, isMenuOpen, toggleMenu, setCurrentScreen, tabs }: any) => {
+const HomeScreen = ({ 
+  audio, activeTab, setActiveTab, isMenuOpen, toggleMenu, setCurrentScreen, tabs, 
+  handleTabPress, handleOpenAuth, handleLogout, currentUser, handleOpenSearch, 
+  recentlyPlayedIds, playCounts, handleOpenTrackOptions, handleOpenAlbumDetail, handleOpenGenreDetail,
+  dynamicPlaylist, firestoreSongs, firestoreAlbums
+}: any) => {
   const { handlePlayTrack } = audio;
 
-  // --- States cho Auth ---
-  const [authModalVisible, setAuthModalVisible] = useState(false);
-  const [isRegisterMode, setIsRegisterMode] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  // State lưu thông tin người dùng đã đăng nhập
-  const [currentUser, setCurrentUser] = useState<any>(null);
 
-  // --- Lắng nghe trạng thái đăng nhập ---
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists()) {
-            setCurrentUser(userDoc.data());
-          } else {
-            setCurrentUser({ displayName: user.email?.split('@')[0], email: user.email });
-          }
-        } catch (err) {
-          console.log("Lỗi Firestore:", err);
-        }
-      } else {
-        setCurrentUser(null);
-      }
-    });
-    return unsubscribe;
-  }, []);
-
-  // --- Hàm xử lý Đăng ký / Đăng nhập ---
-  const handleAuth = async () => {
-    // Kiểm tra dữ liệu đầu vào
-    if (!email.trim() || !password.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ Email và Mật khẩu.");
-      return;
-    }
-
-    if (isRegisterMode) {
-      if (!name.trim()) {
-        Alert.alert("Lỗi", "Vui lòng nhập tên của Anh.");
-        return;
-      }
-      if (password !== confirmPassword) {
-        Alert.alert("Lỗi", "Mật khẩu xác nhận không khớp.");
-        return;
-      }
-    }
-
-    setLoading(true);
-
-    try {
-      if (isRegisterMode) {
-        // --- LOGIC ĐĂNG KÝ ---
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        const userData = {
-          displayName: name,
-          email: email,
-          uid: user.uid,
-          createdAt: new Date().toISOString(),
-        };
-
-        // Lưu vào Firestore
-        await setDoc(doc(db, "users", user.uid), userData);
-        setCurrentUser(userData);
-        Alert.alert("Thành công", `Chào mừng ${name} đã gia nhập!`);
-      } else {
-        // --- LOGIC ĐĂNG NHẬP ---
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          setCurrentUser(userDoc.data());
-        }
-        Alert.alert("Thành công", "Đăng nhập thành công!");
-      }
-
-      setAuthModalVisible(false);
-      resetForm();
-
-    } catch (error: any) {
-      console.error(error.code);
-      let errorMessage = "Đã có lỗi xảy ra.";
-      if (error.code === 'auth/email-already-in-use') errorMessage = "Email này đã được sử dụng.";
-      if (error.code === 'auth/invalid-email') errorMessage = "Email không hợp lệ.";
-      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') errorMessage = "Sai tài khoản hoặc mật khẩu.";
-      
-      Alert.alert("Thất bại", errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetForm = () => {
-    setEmail('');
-    setPassword('');
-    setName('');
-    setConfirmPassword('');
-  };
-
-  const handleLogout = () => {
-    Alert.alert("Xác nhận", "Anh muốn đăng xuất tài khoản này?", [
-      { text: "Hủy", style: "cancel" },
-      { text: "Đăng xuất", onPress: () => signOut(auth) }
-    ]);
-  };
 
   const navigateToPlayer = (index: number) => {
     handlePlayTrack(index);
@@ -149,51 +35,40 @@ const HomeScreen = ({ audio, activeTab, setActiveTab, isMenuOpen, toggleMenu, se
     setCurrentScreen('player');
   };
 
-  const handleTabPress = (tab: string) => {
-    setActiveTab(tab);
-    toggleMenu();
-    if (tab === 'Albums') {
+  const recentlyPlayedTracks = recentlyPlayedIds?.length > 0
+    ? recentlyPlayedIds.map((id: string) => dynamicPlaylist.find((t: any) => t.id === id)).filter(Boolean)
+    : dynamicPlaylist.slice(0, 6);
+
+  const top50Tracks = [...dynamicPlaylist]
+    .sort((a, b) => (playCounts?.[b.id] || 0) - (playCounts?.[a.id] || 0))
+    .slice(0, 50);
+
+  const navigateToPlayerWithId = (trackId: string) => {
+    const index = dynamicPlaylist.findIndex((t: any) => t.id === trackId);
+    if (index !== -1) {
+      handlePlayTrack(index, dynamicPlaylist);
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setCurrentScreen('albums');
+      setCurrentScreen('player');
     }
   };
+
+  const newReleases = firestoreSongs?.length > 0 
+    ? [...firestoreSongs, ...PLAYLIST].slice(0, 10) 
+    : [...PLAYLIST].reverse().slice(0, 10);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
 
       {/* --- Header --- */}
-      <View style={styles.homeTopNav}>
-        <View style={styles.searchBarContainer}>
-          <TextInput 
-            placeholder="Search Music Here.." 
-            placeholderTextColor="#A0A4AB" 
-            style={styles.searchInput} 
-          />
-          <TouchableOpacity style={styles.searchButton}>
-            <Ionicons name="search" size={16} color="#FFF" />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.navRightIcons}>
-          <TouchableOpacity 
-            style={styles.profileIcon}
-            onPress={() => currentUser ? handleLogout() : (setIsRegisterMode(true), setAuthModalVisible(true))}
-          >
-            {currentUser ? (
-              <Text style={{ color: '#0CD2D1', fontWeight: 'bold', fontSize: 14 }}>
-                {currentUser.displayName?.charAt(0).toUpperCase() || 'U'}
-              </Text>
-            ) : (
-              <Ionicons name="person-add" size={16} color="#0CD2D1" />
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.hamburgerBtn} onPress={toggleMenu}>
-            <Ionicons name={isMenuOpen ? "close" : "menu"} size={28} color="#D1D5DF" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <TopNavBar setCurrentScreen={setCurrentScreen} 
+        handleOpenSearch={handleOpenSearch}
+        currentUser={currentUser}
+        handleLogout={handleLogout}
+        handleOpenAuth={handleOpenAuth}
+        toggleMenu={toggleMenu}
+        isMenuOpen={isMenuOpen}
+      />
 
       <View style={{ flex: 1 }}>
         {/* --- Menu Overlay --- */}
@@ -203,15 +78,15 @@ const HomeScreen = ({ audio, activeTab, setActiveTab, isMenuOpen, toggleMenu, se
               {tabs.map((tab: string) => {
                 const isActive = activeTab === tab;
                 return (
-                  <TouchableOpacity 
-                    key={tab} 
-                    onPress={() => handleTabPress(tab)} 
+                  <TouchableOpacity
+                    key={tab}
+                    onPress={() => handleTabPress(tab)}
                     style={[styles.verticalTabItem, isActive && styles.verticalTabActive]}
                   >
-                    <Ionicons 
-                      name={isActive ? "radio-button-on" : "radio-button-off"} 
-                      size={18} 
-                      color={isActive ? "#0CD2D1" : "#6E7480"} 
+                    <Ionicons
+                      name={isActive ? "radio-button-on" : "radio-button-off"}
+                      size={18}
+                      color={isActive ? "#0CD2D1" : "#6E7480"}
                       style={{ marginRight: 15 }}
                     />
                     <Text style={[styles.verticalTabText, isActive && styles.verticalTabTextActive]}>
@@ -227,9 +102,9 @@ const HomeScreen = ({ audio, activeTab, setActiveTab, isMenuOpen, toggleMenu, se
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
           {/* Banner Section */}
           <View style={styles.heroSection}>
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1493225457124-a1a2a5e560ee?w=800&q=80' }} 
-              style={styles.heroImage} 
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1493225457124-a1a2a5e560ee?w=800&q=80' }}
+              style={styles.heroImage}
             />
             <View style={styles.heroGradientOverlay} />
             <View style={styles.heroContent}>
@@ -241,141 +116,176 @@ const HomeScreen = ({ audio, activeTab, setActiveTab, isMenuOpen, toggleMenu, se
             </View>
           </View>
 
-          {/* Recently Played */}
+          {/* Recently Played Section */}
           <View style={styles.sectionContainer}>
-            <View style={{ paddingLeft: 16 }}>
+            <View style={styles.sectionHeaderLine}>
               <Text style={styles.sectionTitle}>Recently Played</Text>
-              <View style={[styles.sectionUnderline, { width: 40 }]} />
+              {/* Thanh gạch chân nhỏ dưới chữ như trong ảnh */}
+              <View style={styles.activeUnderline} />
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, marginTop: 15 }}>
-              {PLAYLIST.slice(2, 6).map((item: any, idx: number) => (
-                <TouchableOpacity key={item.id} style={styles.recentCard} onPress={() => navigateToPlayer(idx + 2)}>
-                  <View style={styles.recentImageContainer}>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScrollPadding}
+            >
+              {recentlyPlayedTracks.map((item: any, index: number) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.recentCard}
+                  onPress={() => navigateToPlayerWithId(item.id)}
+                >
+                  <View style={styles.recentImageWrapper}>
                     <Image source={{ uri: item.artwork }} style={styles.recentImage} />
+                    {/* Nút nhỏ góc ảnh nếu cần (như icon giọt nước trong ảnh) */}
+                    {index === 2 && (
+                      <View style={styles.imageBadge}>
+                        <Ionicons name="water" size={12} color="#0CD2D1" />
+                      </View>
+                    )}
                   </View>
-                  <Text style={styles.recentCardTitle} numberOfLines={1}>{item.title}</Text>
-                  <Text style={styles.recentCardArtist} numberOfLines={1}>{item.artist}</Text>
+                  <Text style={styles.recentTitle} numberOfLines={1}>{item.title}</Text>
+                  <Text style={styles.recentArtist} numberOfLines={1}>{item.artist}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
 
-          {/* Weekly Top 15 */}
-          <View style={[styles.sectionContainer, { paddingBottom: 100 }]}>
-            <View style={{ paddingHorizontal: 16 }}>
-              <Text style={styles.sectionTitle}>Weekly Top 15</Text>
-              <View style={[styles.sectionUnderline, { width: 40 }]} />
+          {/* New Releases Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeaderLine}>
+              <Text style={styles.sectionTitle}>Mới Đăng Lên</Text>
+              <View style={styles.activeUnderline} />
             </View>
-            <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
-              {PLAYLIST.slice(0, 15).map((item: any, index: number) => (
-                <TouchableOpacity key={item.id} style={styles.homeTrackRow} onPress={() => navigateToPlayer(index)}>
-                  <Text style={styles.homeTrackIndex}>{(index + 1).toString().padStart(2, '0')}</Text>
-                  <Image source={{ uri: item.artwork }} style={styles.homeTrackImage} />
-                  <View style={styles.homeTrackInfo}>
-                    <Text style={styles.homeTrackTitle} numberOfLines={1}>{item.title}</Text>
-                    <Text style={styles.homeTrackArtist}>{item.artist}</Text>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScrollPadding}
+            >
+              {newReleases.map((item: any, index: number) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.recentCard}
+                  onPress={() => navigateToPlayerWithId(item.id)}
+                >
+                  <View style={styles.recentImageWrapper}>
+                    <Image source={{ uri: item.artwork }} style={styles.recentImage} />
+                    <View style={styles.imageBadge}>
+                      <Ionicons name="star" size={12} color="#FFD700" />
+                    </View>
                   </View>
+                  <Text style={styles.recentTitle} numberOfLines={1}>{item.title}</Text>
+                  <Text style={styles.recentArtist} numberOfLines={1}>{item.artist}</Text>
                 </TouchableOpacity>
               ))}
+            </ScrollView>
+          </View>
+
+          {/* Trending Albums Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeaderLine}>
+              <Text style={styles.sectionTitle}>Album Thịnh Hành</Text>
+              <View style={styles.activeUnderline} />
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScrollPadding}
+            >
+              {(firestoreAlbums && firestoreAlbums.length > 0 ? firestoreAlbums : [
+                { id: 'empty', title: 'Chưa có Album', artist: 'Hệ thống', artwork: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&q=80' }
+              ]).map((album: any, index: number) => (
+                <TouchableOpacity
+                  key={album.id}
+                  style={styles.recentCard}
+                  onPress={() => handleOpenAlbumDetail(album)}
+                >
+                  <View style={styles.recentImageWrapper}>
+                    <Image source={{ uri: album.artwork || album.cover }} style={styles.recentImage} />
+                  </View>
+                  <Text style={styles.recentTitle} numberOfLines={1}>{album.title}</Text>
+                  <Text style={styles.recentArtist} numberOfLines={1}>{album.artist}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Trending Genres Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeaderLine}>
+              <Text style={styles.sectionTitle}>Thể Loại Thịnh Hành</Text>
+              <View style={styles.activeUnderline} />
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScrollPadding}
+            >
+              {GENRES.map((genre: any, index: number) => (
+                <TouchableOpacity 
+                  key={genre.id} 
+                  style={[styles.recentCard, { width: 120 }]}
+                  onPress={() => handleOpenGenreDetail(genre)}
+                >
+                  <View style={[{ width: 120, height: 80, borderRadius: 12, backgroundColor: genre.color, justifyContent: 'center', alignItems: 'center' }]}>
+                    <MaterialCommunityIcons name={genre.icon as any} size={40} color="#FFF" />
+                  </View>
+                  <Text style={[styles.recentTitle, { textAlign: 'center', marginTop: 8 }]} numberOfLines={1}>{genre.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Top 50 Tracks Section */}
+          <View style={[styles.sectionContainer, { paddingBottom: 20 }]}>
+            <View style={styles.sectionHeaderLine}>
+              <Text style={styles.sectionTitle}>Bảng Xếp Hạng Top 50</Text>
+              <View style={styles.activeUnderline} />
+            </View>
+
+            <View style={styles.topTracksWrapper}>
+              <ScrollView
+                style={{ height: 350 }}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={true}
+              >
+                {top50Tracks.map((item, index) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.homeTrackRow}
+                    onPress={() => navigateToPlayerWithId(item.id)}
+                  >
+                    {/* Số thứ tự */}
+                    <Text style={styles.homeTrackIndex}>
+                      {(index + 1).toString().padStart(2, '0')}
+                    </Text>
+
+                    {/* Ảnh nhỏ */}
+                    <Image source={{ uri: item.artwork }} style={styles.homeTrackImage} />
+
+                    {/* Thông tin bài hát */}
+                    <View style={styles.homeTrackInfo}>
+                      <Text style={styles.homeTrackTitle} numberOfLines={1}>{item.title}</Text>
+                      <Text style={styles.homeTrackArtist}>
+                        {item.artist} <Text style={{ color: '#8E97A6', fontSize: 10 }}>({(playCounts?.[item.id] || 0)} plays)</Text>
+                      </Text>
+                    </View>
+
+                    {/* Nút thêm/option */}
+                    <TouchableOpacity style={styles.trackMenuBtn} onPress={() => handleOpenTrackOptions(item.id)}>
+                      <Ionicons name="ellipsis-horizontal" size={20} color="#8E97A6" />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
           </View>
+          <AppFooter />
         </ScrollView>
       </View>
-
-      {/* --- POPUP ĐĂNG KÝ / ĐĂNG NHẬP --- */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={authModalVisible}
-        onRequestClose={() => setAuthModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity style={styles.closeModalBtn} onPress={() => setAuthModalVisible(false)}>
-              <Ionicons name="close" size={24} color="#FFF" />
-            </TouchableOpacity>
-
-            <Text style={styles.modalTitle}>
-              {isRegisterMode ? "Register / Sign Up" : "Login / Sign In"}
-            </Text>
-
-            {isRegisterMode && (
-              <View style={styles.inputWrapper}>
-                <TextInput 
-                  placeholder="Enter Your Name" 
-                  placeholderTextColor="#A0A4AB" 
-                  style={styles.modalInput}
-                  value={name}
-                  onChangeText={setName}
-                />
-                <Ionicons name="person-outline" size={20} color="#6E7480" />
-              </View>
-            )}
-
-            <View style={styles.inputWrapper}>
-              <TextInput 
-                placeholder="Enter Your Email" 
-                placeholderTextColor="#A0A4AB" 
-                style={styles.modalInput}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-              <Ionicons name="mail-outline" size={20} color="#6E7480" />
-            </View>
-
-            <View style={styles.inputWrapper}>
-              <TextInput 
-                placeholder="Enter Password" 
-                secureTextEntry 
-                placeholderTextColor="#A0A4AB" 
-                style={styles.modalInput}
-                value={password}
-                onChangeText={setPassword}
-              />
-              <Ionicons name="lock-closed-outline" size={20} color="#6E7480" />
-            </View>
-
-            {isRegisterMode && (
-              <View style={styles.inputWrapper}>
-                <TextInput 
-                  placeholder="Confirm Password" 
-                  secureTextEntry 
-                  placeholderTextColor="#A0A4AB" 
-                  style={styles.modalInput}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                />
-                <Ionicons name="lock-closed-outline" size={20} color="#6E7480" />
-              </View>
-            )}
-
-            <TouchableOpacity 
-              style={[styles.modalSubmitBtn, { opacity: loading ? 0.7 : 1 }]} 
-              onPress={handleAuth}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.modalSubmitText}>
-                  {isRegisterMode ? "Register Now" : "Login Now"}
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => { setIsRegisterMode(!isRegisterMode); resetForm(); }}>
-              <Text style={styles.switchAuthText}>
-                {isRegisterMode ? "Already Have An Account? " : "Don't have an account? "}
-                <Text style={{ color: '#FFF', fontWeight: 'bold' }}>
-                  {isRegisterMode ? "Login Here" : "Register Here"}
-                </Text>
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 };

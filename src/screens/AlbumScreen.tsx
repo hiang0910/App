@@ -1,49 +1,172 @@
 import React from 'react';
 import { 
-  Text, View, Image, TouchableOpacity, 
-  SafeAreaView, ScrollView, FlatList 
+  Text, 
+  View, 
+  Image, 
+  TouchableOpacity, 
+  SafeAreaView, 
+  ScrollView, 
+  Dimensions, 
+  TextInput, 
+  StatusBar, 
+  LayoutAnimation,
+  StyleSheet
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ALBUMS, width } from '../constants';
+import { ALBUMS, PLAYLIST } from '../constants';
 import { styles } from '../styles';
+import { AppFooter } from '../components/AppFooter';
+import { TopNavBar } from '../components/TopNavBar';
 
-const AlbumScreen = ({ setCurrentScreen }: any) => {
-  const numColumns = 2;
-  const itemWidth = (width - 48) / numColumns; // Tính toán độ rộng để chia 2 cột
+const { width } = Dimensions.get('window');
 
-  const renderAlbumItem = ({ item }: any) => (
-    <TouchableOpacity 
-      style={{ width: itemWidth, marginBottom: 20, marginRight: 16 }}
-      onPress={() => alert(`Bạn đã chọn album: ${item.title}`)} // Sau này làm trang chi tiết album sau
+const AlbumScreen = ({ 
+  audio, 
+  setCurrentScreen, 
+  toggleMenu, 
+  isMenuOpen, 
+  currentUser,
+  activeTab,
+  setActiveTab,
+  tabs,
+  handleTabPress,
+  handleLogout,
+  handleOpenAuth,
+  handleOpenSearch,
+  handleOpenAlbumDetail,
+  firestoreAlbums,
+  dynamicPlaylist
+}: any) => {
+
+  const firstAlbum = firestoreAlbums && firestoreAlbums.length > 0 ? firestoreAlbums[0] : null;
+  const secondAlbum = firestoreAlbums && firestoreAlbums.length > 1 ? firestoreAlbums[1] : null;
+
+  const { handlePlayTrack } = audio;
+
+  const navigateToPlayer = (index: number) => {
+    handlePlayTrack(index);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCurrentScreen('player');
+  };
+
+  const renderTrackItem = (track: any, index: number) => (
+    <TouchableOpacity
+      key={track.id}
+      style={localStyles.trackRow}
+      onPress={() => navigateToPlayer(index)}
     >
-      <View style={styles.albumGridShadow}>
-        <Image source={{ uri: item.artwork }} style={{ width: itemWidth, height: itemWidth, borderRadius: 15 }} />
+      <Text style={localStyles.trackNumber}>{(index + 1).toString().padStart(2, '0')}</Text>
+      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+        <Text style={localStyles.trackTitle} numberOfLines={1}>{track.title}</Text>
       </View>
-      <Text style={[styles.recentCardTitle, { marginTop: 10 }]} numberOfLines={1}>{item.title}</Text>
-      <Text style={styles.recentCardArtist}>{item.artist}</Text>
+      <Text style={localStyles.trackDuration}>{track.duration}</Text>
+      <Ionicons name="ellipsis-horizontal" size={20} color="#6E7480" style={{ marginLeft: 15 }} />
     </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => setCurrentScreen('home')}>
-          <Ionicons name="arrow-back" size={24} color="#D1D5DF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>ALL ALBUMS</Text>
-        <View style={{ width: 48 }} /> 
-      </View>
+      <StatusBar barStyle="light-content" />
 
-      <FlatList
-        data={ALBUMS}
-        renderItem={renderAlbumItem}
-        keyExtractor={(item) => item.id}
-        numColumns={numColumns}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
+      {/* --- Header Đồng Bộ --- */}
+      <TopNavBar setCurrentScreen={setCurrentScreen} 
+        handleOpenSearch={handleOpenSearch}
+        currentUser={currentUser}
+        handleLogout={handleLogout}
+        handleOpenAuth={handleOpenAuth}
+        toggleMenu={toggleMenu}
+        isMenuOpen={isMenuOpen}
       />
+
+
+
+      <View style={{ flex: 1 }}>
+        {/* --- Menu Overlay Đồng Bộ --- */}
+        {isMenuOpen && (
+          <View style={styles.verticalMenuContainer}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {tabs.map((tab: string) => {
+                const isActive = activeTab === tab;
+                return (
+                  <TouchableOpacity 
+                    key={tab} 
+                    onPress={() => handleTabPress(tab)} 
+                    style={[styles.verticalTabItem, isActive && styles.verticalTabActive]}
+                  >
+                    <Ionicons 
+                      name={isActive ? "radio-button-on" : "radio-button-off"} 
+                      size={18} 
+                      color={isActive ? "#0CD2D1" : "#6E7480"} 
+                      style={{ marginRight: 15 }}
+                    />
+                    <Text style={[styles.verticalTabText, isActive && styles.verticalTabTextActive]}>
+                      {tab}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* --- Nội dung chính --- */}
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+          
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Feature Albums</Text>
+            <TouchableOpacity><Text style={styles.viewMore}>View more</Text></TouchableOpacity>
+          </View>
+          
+          {firstAlbum && (
+            <TouchableOpacity style={localStyles.bannerContainer} onPress={() => handleOpenAlbumDetail(firstAlbum)}>
+              <Image source={{ uri: firstAlbum.artwork || firstAlbum.cover }} style={localStyles.bannerImage} />
+              <View style={localStyles.bannerOverlay}>
+                <Text style={localStyles.bannerTitle}>{firstAlbum.title}</Text>
+                <Text style={localStyles.bannerSub}>By {firstAlbum.artist}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Top Tracks</Text>
+            <TouchableOpacity><Text style={styles.viewMore}>View more</Text></TouchableOpacity>
+          </View>
+          
+          <View style={localStyles.tracksContainer}>
+            {dynamicPlaylist.slice(0, 10).map((item: any, index: number) => renderTrackItem(item, index))}
+          </View>
+
+          {secondAlbum && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Albums Area</Text>
+              </View>
+              <TouchableOpacity style={localStyles.bannerContainer} onPress={() => handleOpenAlbumDetail(secondAlbum)}>
+                <Image source={{ uri: secondAlbum.artwork || secondAlbum.cover }} style={localStyles.bannerImage} />
+              </TouchableOpacity>
+            </>
+          )}
+          <AppFooter />
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
+
+const localStyles = StyleSheet.create({
+  bannerContainer: { paddingHorizontal: 16, marginBottom: 10 },
+  bannerImage: { width: '100%', height: 200, borderRadius: 15 },
+  bannerOverlay: { marginTop: 10 },
+  bannerTitle: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+  bannerSub: { color: '#8E97A6', fontSize: 13 },
+  tracksContainer: { paddingHorizontal: 16 },
+  trackRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, backgroundColor: 'rgba(255,255,255,0.03)', padding: 10, borderRadius: 12 },
+  trackNumber: { color: '#FFF', width: 30, fontSize: 14, fontWeight: 'bold' },
+  trackImage: { width: 45, height: 45, borderRadius: 8, marginRight: 15 },
+  trackInfo: { flex: 1 },
+  trackTitle: { color: '#FFF', fontSize: 15, fontWeight: '600' },
+  trackArtist: { color: '#8E97A6', fontSize: 12 },
+  trackDuration: { color: '#8E97A6', fontSize: 12, marginRight: 10 },
+});
 
 export default AlbumScreen;
