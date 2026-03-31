@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "171272371901",
+    "project_id": "music-online-4ccee",
+    "storage_bucket": "music-online-4ccee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:171272371901:android:f2a41dbfabe9f8c63781d4",
+        "android_client_info": {
+          "package_name": "com.hoangaan.sampleapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "171272371901-o66gtc79s58t9ml6h32i0qu0k5c8bg8o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hoangaan.sampleapp",
+            "certificate_hash": "39fdb41d8ed49743cafa63554e9700945b99e2b1"
+          }
+        },
+        {
+          "client_id": "171272371901-idvboalcletu1717f44inrs4snkruvol.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTl8hbBIUlVes-xy7eVDNSH2kZw5wsRck"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "171272371901-idvboalcletu1717f44inrs4snkruvol.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
